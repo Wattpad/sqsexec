@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"io"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -61,11 +63,25 @@ func main() {
 		sqsSvc = s
 	}
 
+	var dd *dogstatsd.Dogstatsd
+	{
+		dd = dogstatsd.New(datadogMetricPrefix, log.NewContext(logger).With("subsystem", "datadog"))
+		go dd.SendLoop(time.NewTicker(time.Second).C, "udp", datadogHostPort)
+
+		routines := dd.NewGauge("runtime.goroutines")
+		go func() {
+			for range time.NewTicker(time.Second).C {
+				routines.Set(float64(runtime.NumGoroutine()))
+			}
+		}()
+	}
+
 	w := &worker{
-		Log:      logger,
-		S3Client: s3.New(session.New()),
-		Cmd:      command,
-		Delete:   deleteAfterProcessing,
+		Log:               logger,
+		S3Client:          s3.New(session.New()),
+		Cmd:               command,
+		Delete:            deleteAfterProcessing,
+		S3NotFoundCounter: dd.NewCounter("s3.message.not.found", 1),
 	}
 
 	// set up a context which will gracefully cancel the worker on interrupt
@@ -93,8 +109,6 @@ func main() {
 		cancelDelete = cancel
 
 		// track job execution time
-		dd := *dogstatsd.New(datadogMetricPrefix, log.NewContext(logger).With("subsystem", "datadog"))
-		go dd.SendLoop(time.NewTicker(time.Second).C, "udp", datadogHostPort)
 		jobTime := dd.NewTiming("job.time", 1).With("version", Version)
 		stack = append(stack, TrackJobTime(jobTime))
 	}
@@ -106,10 +120,11 @@ func main() {
 }
 
 type worker struct {
-	S3Client *s3.S3
-	Log      log.Logger
-	Cmd      string
-	Delete   bool
+	S3Client          *s3.S3
+	Log               log.Logger
+	Cmd               string
+	Delete            bool
+	S3NotFoundCounter metrics.Counter
 }
 
 type Notification struct {
@@ -165,17 +180,26 @@ func (w *worker) HandleNotificationRecord(ctx context.Context, nr NotificationRe
 	resp, err := w.S3Client.GetObject(req)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "NoSuchKey" {
+			w.S3NotFoundCounter.Add(1)
 			logger.Log("msg", "error getting S3 object: does not exist", "err", err)
+
+			// retrying this message is useless because the message is gone
 			return nil
 		}
 		logger.Log("msg", "error getting S3 object", "err", err)
 		return errors.Wrap(err, "error getting S3 object")
 	}
-	defer resp.Body.Close()
 
-	// after running the command, drain the body from the s3 connection so connections are properly reused and log the job output
-	output, err := w.RunCommand(ctx, resp.Body)
-	io.Copy(ioutil.Discard, resp.Body)
+	// read the s3 object so the s3 client can reuse the connection sooner
+	body, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		logger.Log("msg", "error reading S3 object", "err", err)
+		return errors.Wrap(err, "error reading S3 object")
+	}
+
+	br := bytes.NewReader(body)
+	output, err := w.RunCommand(ctx, br)
 	logger.Log("msg", "completed job", "output", output, "err", err)
 
 	if err == nil && w.Delete {
@@ -188,7 +212,10 @@ func (w *worker) HandleNotificationRecord(ctx context.Context, nr NotificationRe
 		}
 	}
 
-	return errors.Wrap(err, "error running job")
+	if err != nil {
+		return errors.Wrap(err, "error running job")
+	}
+	return nil
 }
 
 func (w *worker) RunCommand(ctx context.Context, msg io.Reader) (string, error) {

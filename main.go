@@ -44,6 +44,7 @@ func main() {
 	flag.StringVar(&datadogHostPort, "ddhost", "localhost:8125", "Host:Port for sending metrics to DataDog")
 	flag.StringVar(&datadogMetricPrefix, "ddprefix", "", "Prefix for DataDog metric names")
 	flag.BoolVar(&deleteAfterProcessing, "delete", true, "Delete S3 objects after processing")
+	flag.Parse()
 
 	var logger log.Logger
 	{

@@ -1,3 +1,4 @@
+GO_VERSION := 1.7.3
 SOURCEDIR=.
 SOURCES := $(shell find $(SOURCEDIR) -name '*.go')
 NON_VENDOR_PKGS = $(subst $(shell go list .),.,$(shell go list ./... | grep -v vendor))
@@ -30,6 +31,24 @@ install:
 .PHONY: clean
 clean:
 	@if [ -f ${BINARY} ] ; then rm ${BINARY} ; fi
+
+.PHONY: release
+release:
+	@echo ""
+	@echo "If you forgot to tag or this is a dirty tree, stop and fix those things now."
+	@echo ""
+	docker run --rm -v ${PWD}:/go/src/github.com/Wattpad/sqsexec \
+                -w /go/src/github.com/Wattpad/sqsexec \
+		-e GOOS=linux -e GOARCH=amd64 \
+		golang:${GO_VERSION}-alpine go build ${LDFLAGS} -o ${BINARY}.linux .
+	docker run --rm -v ${PWD}:/go/src/github.com/Wattpad/sqsexec \
+                -w /go/src/github.com/Wattpad/sqsexec \
+		-e GOOS=darwin -e GOARCH=amd64 \
+		golang:${GO_VERSION}-alpine go build ${LDFLAGS} -o ${BINARY}.darwin .
+	hub release create -d -a 'sqsexec.linux#linux' -a 'sqsexec.darwin#darwin' -m "${VERSION}" "$(shell git describe --tags)"
+	@echo ""
+	@echo "Now go to the above url and edit the title/description/etc and release it!"
+	@echo ""
 
 .PHONY: bootstrap
 bootstrap:

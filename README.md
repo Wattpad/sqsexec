@@ -22,3 +22,7 @@ Ensure `sqsexec` is automatically restarted so that an unexpected crash does not
 Scale out the number of running `sqsexec` processes to control the level of job processing concurrency: every instance will run approximately 10 concurrent jobs, so depending on the resource requirements of the exec'd command, you can scale out replicas of `sqsexec` on the same host (eg, `numprocs` in the supervisor conf) or just run more hosts (an ASG driven by the SQS ApproximateNumberOfMessagesVisible may be a good choice if you want to keep queue depth under control).
 
 The executed command will inherit the environment variables from `sqsexec`'s runtime environment, so you can pass config values to the external program by setting environment variables.
+
+## Releases
+
+`brew install hub` to have the `hub release` feature, tag the revision (and push the tag to github) then `make release`

@@ -19,8 +19,8 @@ deploy:
   api_key:
     secure: gQcIyLnRK7KHNHnh6TDTejQI2l+0K0zN0EhDKLk3gTjSQIoaygpIvDu7C89vexccEcHGTI0PwQhEvSMAgoCo+6WbJqGv5b6lGy331MwodetehNDIpyM/ZLQ2sa2/YWnZnGAsUqVvvQpmUiCo1z3M0JlaN9p/Jq/NbwgttvBEisl9m+l+z7jeVu9gSA9UwcM5Tt3zgIwybS8xNztzkF3Wl6pPtqvuZKixjZQMpxtLfFmvbTN+H8tPAbN+CPzigtJaJvfAANxHfq9OqYgMGgWs6EwpX25HpPxP//Ws6DNMKfekpW98M5EAwUsfm+yffHyyEeEG8xyv1rTgG3tnOKydmST1PT05QOHJSoRzpqp/8YvGP9EWdF79DPCWf2P5k7wI8yVuJ07bEH+MPW0gL33JpOcU0ybJQPMkDRx6g+c+SH9/5tUDNDHzwmFMHRjxnQCr7A2VykOBHzh12Tixv1NZ+Rocp9o6ZfFLxGThpkgr1VVu1mQrP8NLiSixPqOE+6W6SaiOTP+uyUlPVCYNd9v4hCRqIW/y8fYht/cO3MRgaefpAKw67c+S1NmhH7i9fCBtq1k3AthqOXhXHm6xiCbGqhnClyLyO7hVy86TK8qAYfmPEY+zAq/t4R7enLexKN0f1Bv8os0aroRZv9VeZyEgzKl9wltTiUtuWJ27aRSkud4=
   file: 
-  - sqsexec.linux
-  - sqsexec.darwin
+    - "sqsexec.linux"
+    - "sqsexec.darwin"
   on:
     repo: Wattpad/sqsexec
     tags: true

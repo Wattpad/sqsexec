@@ -22,7 +22,7 @@ test:
 	@staticcheck $(NON_VENDOR_PKGS)
 	@unused -exported $(NON_VENDOR_PKGS)
 	@-gosimple $(NON_VENDOR_PKGS)
-	@go test $(testargs) ./...
+	@go test $(testargs) $(NON_VENDOR_PKGS)
 
 .PHONY: install
 install:

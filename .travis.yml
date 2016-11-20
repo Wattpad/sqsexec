@@ -26,7 +26,3 @@ deploy:
     repo: Wattpad/sqsexec
     tags: true
   skip_cleanup: true
-
-branches:
-  only:
-    - master

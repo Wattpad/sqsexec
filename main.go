@@ -37,6 +37,7 @@ func main() {
 		datadogHostPort       string
 		datadogMetricPrefix   string
 		deleteAfterProcessing bool
+		printVersion          bool
 	)
 	flag.StringVar(&command, "command", "", "Command to exec per message. Message body will be piped to this command's STDIN. Must be a single executable with no arguments.")
 	flag.StringVar(&queueName, "queue", "", "SQS queue name to consume")
@@ -44,7 +45,13 @@ func main() {
 	flag.StringVar(&datadogHostPort, "ddhost", "localhost:8125", "Host:Port for sending metrics to DataDog")
 	flag.StringVar(&datadogMetricPrefix, "ddprefix", "", "Prefix for DataDog metric names")
 	flag.BoolVar(&deleteAfterProcessing, "delete", true, "Delete S3 objects after processing")
+	flag.BoolVar(&printVersion, "version", false, "Print the version and exit")
 	flag.Parse()
+
+	if printVersion {
+		io.WriteString(os.Stdout, "Version: "+Version+"\n")
+		os.Exit(0)
+	}
 
 	var logger log.Logger
 	{

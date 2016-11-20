@@ -34,6 +34,11 @@ clean:
 
 .PHONY: release
 release:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build ${LDFLAGS} -o ${BINARY}.linux .
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build ${LDFLAGS} -o ${BINARY}.darwin .
+
+.PHONY: docker-release
+docker-release:
 	docker run --rm -v ${PWD}:/go/src/github.com/Wattpad/sqsexec \
                 -w /go/src/github.com/Wattpad/sqsexec \
 		-e GOOS=linux -e GOARCH=amd64 \

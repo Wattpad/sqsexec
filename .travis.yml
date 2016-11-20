@@ -4,7 +4,8 @@ go:
   - 1.7.3
 
 dist: trusty
-sudo: required
+sudo: false
+group: beta
 
 install: make bootstrap
 
@@ -25,3 +26,7 @@ deploy:
     repo: Wattpad/sqsexec
     tags: true
   skip_cleanup: true
+
+branches:
+  only:
+    - master

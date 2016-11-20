@@ -24,3 +24,4 @@ deploy:
   on:
     repo: Wattpad/sqsexec
     tags: true
+  skip_cleanup: true

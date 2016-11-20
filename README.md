@@ -25,4 +25,4 @@ The executed command will inherit the environment variables from `sqsexec`'s run
 
 ## Releases
 
-`brew install hub` to have the `hub release` feature, tag the revision (and push the tag to github) then `make release`
+Travis should automatically build and release on new tags.

@@ -53,6 +53,12 @@ func main() {
 		os.Exit(0)
 	}
 
+	if command == "" || queueName == "" {
+		io.WriteString(os.Stderr, "You must specify both command and queue\n")
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	var logger log.Logger
 	{
 		logger = log.NewJSONLogger(log.NewSyncWriter(os.Stdout))

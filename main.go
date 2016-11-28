@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -32,6 +33,7 @@ var Version string = "UNKNOWN"
 func main() {
 	var (
 		command               string
+		visibilityTimeout     time.Duration
 		queueName             string
 		region                string
 		datadogHostPort       string
@@ -40,6 +42,7 @@ func main() {
 		printVersion          bool
 	)
 	flag.StringVar(&command, "command", "", "Command to exec per message. Message body will be piped to this command's STDIN. Must be a single executable with no arguments.")
+	flag.DurationVar(&visibilityTimeout, "visibility_timeout", time.Minute, "How long to set visibility timeouts for. Visibility timeouts will be updated on a period 2/3 this value, with the timeout set to this value. eg. '10m' or '30s' - cannot be less than 30s")
 	flag.StringVar(&queueName, "queue", "", "SQS queue name to consume")
 	flag.StringVar(&region, "region", "us-east-1", "SQS queue region")
 	flag.StringVar(&datadogHostPort, "ddhost", "localhost:8125", "Host:Port for sending metrics to DataDog")
@@ -59,10 +62,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	if visibilityTimeout.Seconds() < 30 {
+		io.WriteString(os.Stderr, "visibility_timeout must be at least 30s")
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	var logger log.Logger
 	{
 		logger = log.NewJSONLogger(log.NewSyncWriter(os.Stdout))
-		logger = log.NewContext(logger).With("service", "sqsexec", "version", Version)
+		logger = log.NewContext(logger).With("service", "sqsexec", "version", Version, "timestamp", log.DefaultTimestampUTC)
 		logger.Log("msg", "service starting", "queue", queueName)
 		defer logger.Log("msg", "service stopped")
 	}
@@ -112,25 +121,34 @@ func main() {
 		fetchCtx = ctx
 	}
 
-	// set up default middleware stack + timer
-	var (
-		stack        []middleware.MessageHandlerDecorator
-		cancelDelete context.CancelFunc
-	)
+	// set up middleware stack with timing metrics
+	var stack []middleware.MessageHandlerDecorator
 	{
-		ctx, cancel := context.WithCancel(context.Background())
-		stack = middleware.DefaultStack(ctx, sqsSvc)
-		cancelDelete = cancel
-
-		// track job execution time
 		jobTime := dd.NewTiming("job.time", 1).With("version", Version)
-		stack = append(stack, TrackJobTime(jobTime))
+		timing := TrackJobTime(jobTime)
+
+		messageAge := dd.NewGauge("job.age").With("version", Version)
+		ageTracker := middleware.TrackMessageAge(time.Second, func(age float64) {
+			messageAge.Set(age)
+		})
+
+		stack = []middleware.MessageHandlerDecorator{ageTracker, timing}
 	}
 
 	h := middleware.ApplyDecoratorsToHandler(w.HandleMessage, stack...)
 	c := sqsconsumer.NewConsumer(sqsSvc, h)
+
+	extendBy := int64(visibilityTimeout.Seconds())
+	c.ExtendVisibilityTimeoutBySeconds = extendBy
+	c.ReceiveVisibilityTimoutSeconds = extendBy
+
+	// at least every 20s (min duration is 30s) and always more often than the timeout
+	c.ExtendVisibilityTimeoutEvery = visibilityTimeout * 2 / 3
+
+	c.Logger = func(f string, args ...interface{}) {
+		logger.Log("msg", fmt.Sprintf(f, args...))
+	}
 	c.Run(fetchCtx)
-	cancelDelete()
 }
 
 type worker struct {
@@ -233,7 +251,7 @@ func (w *worker) HandleNotificationRecord(ctx context.Context, nr NotificationRe
 }
 
 func (w *worker) RunCommand(ctx context.Context, msg io.Reader) (string, error) {
-	cmd := exec.CommandContext(ctx, w.Cmd)
+	cmd := exec.Command(w.Cmd)
 	cmd.Stdin = msg
 	res, err := cmd.CombinedOutput()
 	return string(res), errors.Wrap(err, "error running command")

@@ -8,19 +8,23 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/Wattpad/sqsconsumer",
-			"Rev": "33e5663046edbe29ddc415a7447166a4cc00a1b6"
+			"Comment": "v2.0",
+			"Rev": "d9dc2671d3385de2ff69611b5b7ad39224efc5d0"
 		},
 		{
 			"ImportPath": "github.com/Wattpad/sqsconsumer/middleware",
-			"Rev": "33e5663046edbe29ddc415a7447166a4cc00a1b6"
+			"Comment": "v2.0",
+			"Rev": "d9dc2671d3385de2ff69611b5b7ad39224efc5d0"
 		},
 		{
 			"ImportPath": "github.com/Wattpad/sqsconsumer/middleware/movingaverage",
-			"Rev": "33e5663046edbe29ddc415a7447166a4cc00a1b6"
+			"Comment": "v2.0",
+			"Rev": "d9dc2671d3385de2ff69611b5b7ad39224efc5d0"
 		},
 		{
 			"ImportPath": "github.com/Wattpad/sqsconsumer/sqsmessage",
-			"Rev": "33e5663046edbe29ddc415a7447166a4cc00a1b6"
+			"Comment": "v2.0",
+			"Rev": "d9dc2671d3385de2ff69611b5b7ad39224efc5d0"
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/aws",

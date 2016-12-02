@@ -101,7 +101,7 @@ func main() {
 
 	w := &worker{
 		Log:               logger,
-		S3Client:          s3.New(session.New()),
+		S3Client:          s3.New(session.New(), aws.NewConfig().WithRegion(region)),
 		Cmd:               command,
 		Delete:            deleteAfterProcessing,
 		S3NotFoundCounter: dd.NewCounter("s3.message.not.found", 1),
